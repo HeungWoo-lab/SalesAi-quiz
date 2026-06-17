@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 소양 진단 | 필라넷</title>
+
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<style>
+  /* ── RESET & BASE ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #07090f;
+    --surface:  #0d1117;
+    --surface2: #161b27;
+    --border:   #1f2937;
+    --border2:  #2d3748;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --dim:      #94a3b8;
+    --indigo:   #6366f1;
+    --violet:   #8b5cf6;
+    --green:    #10b981;
+    --amber:    #f59e0b;
+    --red:      #ef4444;
+    --blue:     #3b82f6;
+    --font: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  }
+
+  html { font-size: 15px; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 48px;
+  }
+
+  #root { width: 100%; max-width: 580px; }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px 28px;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .eyebrow {
+    display: inline-block;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--indigo);
+    background: rgba(99,102,241,.12);
+    border: 1px solid rgba(99,102,241,.25);
+    border-radius: 20px;
+    padding: 4px 14px;
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 28px; font-weight: 800; line-height: 1.3; color: #f1f5f9; }
+  h2 { font-size: 20px; font-weight: 800; color: #f1f5f9; }
+  .sub { color: var(--dim); font-size: 13.5px; line-height: 1.75; margin-top: 10px; }
+
+  /* ── INPUTS ── */
+  input[type=text], textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 13px 15px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--indigo); }
+  textarea { resize: vertical; line-height: 1.65; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    border: none; border-radius: 11px;
+    padding: 14px 22px;
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--indigo), var(--violet));
+    color: #fff; width: 100%;
+  }
+  .btn-ghost {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--dim);
+  }
+  .btn-success {
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+  }
+
+  /* ── NAV ROW ── */
+  .nav-row { display: flex; gap: 10px; margin-top: 16px; }
+  .nav-row .btn-ghost { flex: 1; }
+  .nav-row .btn-primary, .nav-row .btn-success { flex: 2; }
+
+  /* ── PILL ── */
+  .pill {
+    display: inline-block;
+    border-radius: 20px; padding: 3px 11px;
+    font-size: 11px; font-weight: 700;
+  }
+
+  /* ── PROGRESS DOTS ── */
+  .dots { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0; }
+  .dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--border2);
+    background: var(--surface2);
+    cursor: pointer; transition: background .2s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: transparent;
+  }
+  .dot.done   { background: var(--green);  border-color: var(--green);  color: #fff; }
+  .dot.active { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+
+  /* ── TIMER ── */
+  .timer-wrap { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+  .timer-wrap svg { position: absolute; top:0; left:0; }
+  .timer-label {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+  }
+
+  /* ── QUIZ HEADER ── */
+  .quiz-header {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+  }
+  .quiz-header-left { display: flex; flex-direction: column; gap: 3px; }
+  .quiz-header-name { font-weight: 700; font-size: 15px; }
+  .quiz-header-prog { font-size: 12px; color: var(--muted); }
+
+  /* ── CATEGORY BAR ── */
+  .cat-bar-wrap { margin-bottom: 8px; }
+  .cat-bar-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+  .bar-track { background: var(--surface2); border-radius: 6px; height: 6px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 6px; transition: width .6s ease; }
+
+  /* ── RESULT ── */
+  .score-hero {
+    text-align: center; padding: 36px 28px 28px;
+  }
+  .score-big {
+    font-size: 80px; font-weight: 900; line-height: 1;
+    background: linear-gradient(135deg, var(--indigo), var(--violet));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .score-denom { font-size: 18px; color: var(--muted); margin-left: 4px; }
+  .grade-badge {
+    display: inline-block; border-radius: 20px;
+    padding: 7px 22px; font-size: 14px; font-weight: 700; color: #fff;
+    margin-top: 14px;
+  }
+  .section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 14px;
+  }
+  .summary-row { display: flex; gap: 12px; align-items: flex-start; padding: 14px 0; }
+  .summary-row + .summary-row { border-top: 1px solid var(--border); }
+  .summary-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .summary-key { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing:.5px; margin-bottom: 4px; }
+  .summary-val { font-size: 13px; color: #cbd5e1; line-height: 1.6; }
+
+  .q-result-item {
+    background: var(--surface2); border-radius: 12px;
+    padding: 16px; margin-bottom: 10px;
+  }
+  .q-result-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .q-result-score { margin-left: auto; font-size: 16px; font-weight: 800; }
+  .q-result-text { font-size: 13px; color: var(--dim); line-height: 1.6; margin-bottom: 10px; }
+  .answer-box {
+    background: var(--surface); border-radius: 8px;
+    padding: 10px 13px; margin-bottom: 8px;
+  }
+  .answer-box .lbl { font-size: 10px; color: var(--muted); font-weight:700; letter-spacing:.5px; margin-bottom:4px; }
+  .answer-box .val { font-size: 13px; color: #cbd5e1; line-height: 1.55; }
+  .fb-box {
+    background: rgba(99,102,241,.06);
+    border: 1px solid rgba(99,102,241,.18);
+    border-radius: 8px; padding: 10px 13px;
+  }
+  .fb-box .lbl { font-size: 10px; color: var(--indigo); font-weight:700; letter-spacing:.5px; margin-bottom:4px; }
+  .fb-box .val { font-size: 13px; color: #a5b4fc; line-height: 1.55; }
+
+  /* ── SCORING ANIMATION ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin-ring {
+    width: 72px; height: 72px; border-radius: 50%;
+    border: 4px solid transparent;
+    border-top-color: var(--indigo);
+    border-right-color: var(--violet);
+    animation: spin .9s linear infinite;
+    margin: 0 auto 22px;
+  }
+
+  /* ── EMAIL CONFIG ── */
+  .config-box {
+    background: var(--surface2);
+    border: 1px solid var(--amber);
+    border-radius: 12px; padding: 18px;
+    margin-bottom: 22px;
+  }
+  .config-box .cfg-title { font-size: 12px; font-weight:700; color: var(--amber); margin-bottom: 12px; }
+  .config-box label { font-size: 12px; color: var(--dim); display:block; margin-bottom:5px; margin-top:10px; }
+
+  /* ── SEND STATUS ── */
+  .send-status {
+    font-size: 12px; text-align: center; margin-top: 10px; min-height: 18px;
+  }
+
+  /* ── SECTIONS SPACING ── */
+  .section { margin-bottom: 14px; }
+  .divider { height:1px; background: var(--border); margin: 6px 0; }
+
+  /* ── INFO GRID ── */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 22px 0; }
+  .info-item {
+    background: var(--surface2); border-radius: 12px; padding: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .info-item .i-icon { font-size: 22px; }
+  .info-item .i-lbl { font-size: 11px; color: var(--muted); }
+  .info-item .i-val { font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  ★ 설정 영역 — 여기만 수정하세요
+// ══════════════════════════════════════════════
+const CONFIG = {
+  // EmailJS 설정 (https://www.emailjs.com 에서 발급)
+  emailjs_public_key:  "Zv0WeoR5nYxL595t-",
+  emailjs_service_id:  "service_nsvuyw6",
+  emailjs_template_id: "template_znhzedy",
+  recipient_email:     "happyox@feelanet.com",
+
+  // 회사명 (화면 표시용)
+  company: "필라넷",
+};
+// ══════════════════════════════════════════════
+
+const QUESTIONS = [
+  { id:1, cat:"기본 개념",        q:"Gemini, Claude, Copilot은 모두 'AI'라는 점에서 같아 보입니다. 기업 도입 시 이 세 가지를 구분해서 봐야 한다면, 가장 중요한 기준은 무엇이라고 생각하십니까?" },
+  { id:2, cat:"기본 개념",        q:"고객사 IT 담당자가 '우리는 이미 ChatGPT 쓰고 있어요'라고 했을 때, 어떤 후속 질문을 하시겠습니까?" },
+  { id:3, cat:"기본 개념",        q:"'Copilot은 Microsoft 제품이니까 M365 쓰는 회사면 다 된다'는 말에 동의하십니까? 이유를 설명해 보세요." },
+  { id:4, cat:"고객 니즈 파악",   q:"제조업 고객사가 'AI로 업무 효율을 높이고 싶다'고 했을 때, 어떤 순서로 현황을 파악하시겠습니까?" },
+  { id:5, cat:"고객 니즈 파악",   q:"AI 도입을 검토 중인 고객사에서 가장 자주 나오는 반대 의견(보안, 비용, 효과 불확실성 등) 중 하나를 골라 어떻게 대응하시겠습니까?" },
+  { id:6, cat:"고객 니즈 파악",   q:"같은 AI 솔루션을 두고 IT 담당자와 사업부장(현업 임원)에게 각각 다르게 설명해야 한다면, 무엇이 달라져야 할까요?" },
+  { id:7, cat:"솔루션 포지셔닝",  q:"고객이 'Copilot Studio로 직접 만들면 되지 않나요?'라고 물어볼 때 어떻게 답하시겠습니까?" },
+  { id:8, cat:"솔루션 포지셔닝",  q:"AI 플랫폼 도입 제안 시, 라이선스 비용 외에 고객에게 반드시 짚어줘야 할 숨겨진 비용 또는 리스크는 무엇이 있을까요?" },
+  { id:9, cat:"실무 적용력",      q:"본인의 영업 업무(제안서 작성, 고객 미팅 준비, 후속 관리 등) 중 AI를 직접 활용해 본 경험이 있다면 구체적으로 설명해 주세요. 없다면 어떤 업무에 써보고 싶으신가요?" },
+  { id:10,cat:"실무 적용력",      q:"AI 에이전트(Agentic AI)와 단순 챗봇의 차이를 고객에게 1분 안에 설명한다면 어떻게 하시겠습니까?" },
+];
+
+const CAT_COLORS = {
+  "기본 개념":       "#3b82f6",
+  "고객 니즈 파악":  "#8b5cf6",
+  "솔루션 포지셔닝": "#f59e0b",
+  "실무 적용력":     "#10b981",
+};
+
+const TOTAL_SEC = 10 * 60;
+
+// ── STATE ──────────────────────────────────────
+let state = {
+  phase: "intro",      // intro | quiz | scoring | result
+  name: "",
+  answers: {},
+  currentQ: 0,
+  timeLeft: TOTAL_SEC,
+  scores: null,
+  feedback: null,
+  scoringPct: 0,
+  sendStatus: "",      // "", "sending", "sent", "error"
+};
+let timerHandle = null;
+
+// ── RENDER ─────────────────────────────────────
+function render() {
+  const root = document.getElementById("root");
+  if (state.phase === "intro")   root.innerHTML = renderIntro();
+  if (state.phase === "quiz")    root.innerHTML = renderQuiz();
+  if (state.phase === "scoring") root.innerHTML = renderScoring();
+  if (state.phase === "result")  root.innerHTML = renderResult();
+  attachEvents();
+}
+
+// ── INTRO ──────────────────────────────────────
+function renderIntro() {
+  return `
+  <div class="card">
+    <span class="eyebrow">${CONFIG.company} · AI 소양 진단</span>
+    <h1>기업 AI 도입<br>영업 역량 테스트</h1>
+    <p class="sub">Gemini · Claude · Copilot 기업 적용 관점<br>총 10문항 · 제한시간 10분 · AI 자동 채점</p>
+    <div class="info-grid">
+      <div class="info-item"><span class="i-icon">📋</span><span class="i-lbl">문항 수</span><span class="i-val">10문항</span></div>
+      <div class="info-item"><span class="i-icon">⏱️</span><span class="i-lbl">제한시간</span><span class="i-val">10분</span></div>
+      <div class="info-item"><span class="i-icon">🎯</span><span class="i-lbl">만점</span><span class="i-val">100점</span></div>
+      <div class="info-item"><span class="i-icon">✍️</span><span class="i-lbl">형식</span><span class="i-val">주관식</span></div>
+    </div>
+    <input type="text" id="nameInput" placeholder="이름을 입력하세요" value="${escHtml(state.name)}" autocomplete="off">
+    <div style="height:12px"></div>
+    <button class="btn btn-primary" id="startBtn" ${state.name.trim() ? "" : "disabled"}>진단 시작 →</button>
+    <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">* 시작 즉시 타이머가 작동합니다</p>
+  </div>`;
+}
+
+// ── QUIZ ───────────────────────────────────────
+function renderQuiz() {
+  const q = QUESTIONS[state.currentQ];
+  const answered = Object.keys(state.answers).length;
+  const pct = (state.timeLeft / TOTAL_SEC) * 100;
+  const r = 22, circ = 2 * Math.PI * r;
+  const timerColor = state.timeLeft > 180 ? "var(--green)" : state.timeLeft > 60 ? "var(--amber)" : "var(--red)";
+  const catColor = CAT_COLORS[q.cat];
+
+  const dots = QUESTIONS.map((_, i) => {
+    const cls = i === state.currentQ ? "dot active" : state.answers[i] !== undefined ? "dot done" : "dot";
+    const lbl = state.answers[i] !== undefined ? "✓" : i + 1;
+    return `<div class="${cls}" data-qi="${i}">${lbl}</div>`;
+  }).join("");
+
+  return `
+  <div class="quiz-header">
+    <div class="quiz-header-left">
+      <span class="quiz-header-name">${escHtml(state.name)}</span>
+      <span class="quiz-header-prog">${answered} / ${QUESTIONS.length} 완료</span>
+    </div>
+    <div class="timer-wrap">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="4"/>
+        <circle cx="26" cy="26" r="${r}" fill="none" stroke="${timerColor}" stroke-width="4"
+          stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - pct/100)}"
+          stroke-linecap="round" transform="rotate(-90 26 26)" style="transition:stroke-dashoffset 1s linear"/>
+      </svg>
+      <span class="timer-label" style="color:${timerColor}">${fmtTime(state.timeLeft)}</span>
+    </div>
+  </div>
+
+  <div class="dots">${dots}</div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span class="pill" style="background:${catColor}22;color:${catColor};border:1px solid ${catColor}44">${q.cat}</span>
+      <span style="font-size:12px;color:var(--muted);margin-left:auto">Q${q.id} / 10</span>
+    </div>
+    <p style="font-size:15px;line-height:1.75;color:var(--text);margin-bottom:16px">${escHtml(q.q)}</p>
+    <textarea id="answerArea" rows="5" placeholder="여기에 답변을 입력하세요...">${escHtml(state.answers[state.currentQ] || "")}</textarea>
+  </div>
+
+  <div class="nav-row">
+    <button class="btn btn-ghost" id="prevBtn" ${state.currentQ === 0 ? "disabled" : ""}>← 이전</button>
+    ${state.currentQ < QUESTIONS.length - 1
+      ? `<button class="btn btn-primary" id="nextBtn">다음 →</button>`
+      : `<button class="btn btn-success" id="submitBtn">제출 및 채점 ✓</button>`
+    }
+  </div>`;
+}
+
+// ── SCORING ────────────────────────────────────
+function renderScoring() {
+  return `
+  <div class="card" style="text-align:center;padding:56px 32px">
+    <div class="spin-ring"></div>
+    <h2 style="margin-bottom:8px">AI가 채점 중입니다</h2>
+    <p class="sub" style="margin-bottom:24px">답변을 분석하고 있습니다...</p>
+    <div class="bar-track" style="margin-bottom:8px">
+      <div class="bar-fill" style="width:${state.scoringPct}%;background:linear-gradient(90deg,var(--indigo),var(--violet))"></div>
+    </div>
+    <span style="font-size:13px;color:var(--indigo);font-weight:700">${state.scoringPct}%</span>
+  </div>`;
+}
+
+// ── RESULT ─────────────────────────────────────
+function renderResult() {
+  const total = state.scores.reduce((a,b)=>a+b,0);
+  const grade = total>=85 ? {l:"S",c:"#f59e0b",d:"AI 영업 준비 완료"}
+               : total>=70 ? {l:"A",c:"#10b981",d:"실전 투입 가능"}
+               : total>=55 ? {l:"B",c:"#3b82f6",d:"기초 역량 보완 필요"}
+               : total>=40 ? {l:"C",c:"#8b5cf6",d:"집중 교육 권장"}
+               :             {l:"D",c:"#ef4444",d:"기초부터 재학습 필요"};
+
+  // category averages
+  const catMap = {};
+  QUESTIONS.forEach((q,i) => {
+    if (!catMap[q.cat]) catMap[q.cat] = [];
+    catMap[q.cat].push(state.scores[i]);
+  });
+  const catBars = Object.entries(catMap).map(([cat, arr]) => {
+    const avg = (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1);
+    const pct = (avg/10*100).toFixed(0);
+    const col = CAT_COLORS[cat];
+    return `
+    <div class="cat-bar-wrap">
+      <div class="cat-bar-label">
+        <span style="font-size:12px;font-weight:700;color:${col}">${cat}</span>
+        <span style="font-size:12px;font-weight:700">${avg}/10</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
+    </div>`;
+  }).join("");
+
+  const fb = state.feedback;
+  const qItems = QUESTIONS.map((q,i) => {
+    const s = state.scores[i];
+    const sc = s>=7 ? "var(--green)" : s>=5 ? "var(--amber)" : "var(--red)";
+    const catCol = CAT_COLORS[q.cat];
+    return `
+    <div class="q-result-item">
+      <div class="q-result-top">
+        <span class="pill" style="background:${catCol}22;color:${catCol};border:1px solid ${catCol}44;font-size:10px">${q.cat}</span>
+        <span style="font-size:11px;color:var(--muted)">Q${q.id}</span>
+        <span class="q-result-score" style="color:${sc}">${s}<span style="font-size:12px;color:var(--muted);font-weight:400">/10</span></span>
+      </div>
+      <p class="q-result-text">${escHtml(q.q)}</p>
+      <div class="answer-box">
+        <div class="lbl">내 답변</div>
+        <div class="val">${escHtml(state.answers[i] || "(무응답)")}</div>
+      </div>
+      <div class="fb-box">
+        <div class="lbl">💡 피드백</div>
+        <div class="val">${escHtml(fb.feedbacks?.[i] || "")}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const sendLabel = state.sendStatus === "sending" ? "전송 중..."
+                  : state.sendStatus === "sent"    ? "✓ 이메일 전송 완료"
+                  : state.sendStatus === "error"   ? "전송 실패 (설정 확인)"
+                  : "결과 이메일 전송";
+  const sendDisabled = state.sendStatus === "sending" || state.sendStatus === "sent" ? "disabled" : "";
+  const sendColor = state.sendStatus === "sent" ? "var(--green)" : state.sendStatus === "error" ? "var(--red)" : "";
+
+  return `
+  <!-- SCORE HERO -->
+  <div class="card score-hero section">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">${escHtml(state.name)}님의 결과</p>
+    <div><span class="score-big">${total}</span><span class="score-denom">/ 100</span></div>
+    <div class="grade-badge" style="background:${grade.c}">${grade.l} · ${grade.d}</div>
+  </div>
+
+  <!-- CATEGORY -->
+  <div class="card section">
+    <div class="section-title">영역별 점수</div>
+    ${catBars}
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="card section">
+    <div class="section-title">총평</div>
+    <div class="summary-row"><span class="summary-icon">💪</span><div><div class="summary-key">강점</div><div class="summary-val">${escHtml(fb.strengths||"")}</div></div></div>
+    <div class="summary-row"><span class="summary-icon">📈</span><div><div class="summary-key">개선 포인트</div><div class="summary-val">${escHtml(fb.improvements||"")}</div></div></div>
+    <div class="summary-row"><span class="summary-icon">📝</span><div><div class="summary-key">종합 의견</div><div class="summary-val">${escHtml(fb.summary||"")}</div></div></div>
+  </div>
+
+  <!-- EMAIL SEND -->
+  <div class="card section">
+    <div class="section-title">결과 제출</div>
+    <button class="btn btn-primary" id="sendEmailBtn" ${sendDisabled} style="${sendColor ? `background:${sendColor};` : ""}">${sendLabel}</button>
+    <p class="send-status" id="sendStatusMsg" style="color:${sendColor||"var(--muted)"}">
+      ${state.sendStatus === "sent" ? `${CONFIG.recipient_email} 으로 전송되었습니다` : ""}
+      ${state.sendStatus === "error" ? "EmailJS 설정을 확인해 주세요" : ""}
+    </p>
+  </div>
+
+  <!-- PER-QUESTION -->
+  <div class="card section">
+    <div class="section-title">문항별 상세 결과</div>
+    ${qItems}
+  </div>
+
+  <button class="btn btn-ghost" id="retryBtn" style="width:100%;margin-bottom:24px">다시 진단하기</button>`;
+}
+
+// ── EVENTS ─────────────────────────────────────
+function attachEvents() {
+  // INTRO
+  const nameInput = document.getElementById("nameInput");
+  if (nameInput) {
+    nameInput.addEventListener("input", e => {
+      state.name = e.target.value;
+      const btn = document.getElementById("startBtn");
+      if (btn) btn.disabled = !state.name.trim();
+    });
+    nameInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && state.name.trim()) startQuiz();
+    });
+  }
+  const startBtn = document.getElementById("startBtn");
+  if (startBtn) startBtn.addEventListener("click", startQuiz);
+
+  // QUIZ
+  const answerArea = document.getElementById("answerArea");
+  if (answerArea) {
+    answerArea.addEventListener("input", e => {
+      state.answers[state.currentQ] = e.target.value;
+    });
+  }
+  document.querySelectorAll(".dot[data-qi]").forEach(d => {
+    d.addEventListener("click", () => {
+      saveCurrentAnswer();
+      state.currentQ = parseInt(d.dataset.qi);
+      render();
+    });
+  });
+  const prevBtn = document.getElementById("prevBtn");
+  if (prevBtn) prevBtn.addEventListener("click", () => { saveCurrentAnswer(); state.currentQ--; render(); });
+  const nextBtn = document.getElementById("nextBtn");
+  if (nextBtn) nextBtn.addEventListener("click", () => { saveCurrentAnswer(); state.currentQ++; render(); });
+  const submitBtn = document.getElementById("submitBtn");
+  if (submitBtn) submitBtn.addEventListener("click", () => { saveCurrentAnswer(); doScore(); });
+
+  // RESULT
+  const sendBtn = document.getElementById("sendEmailBtn");
+  if (sendBtn) sendBtn.addEventListener("click", sendEmail);
+  const retryBtn = document.getElementById("retryBtn");
+  if (retryBtn) retryBtn.addEventListener("click", resetAll);
+}
+
+function saveCurrentAnswer() {
+  const area = document.getElementById("answerArea");
+  if (area) state.answers[state.currentQ] = area.value;
+}
+
+// ── TIMER ──────────────────────────────────────
+function startQuiz() {
+  if (!state.name.trim()) return;
+  state.phase = "quiz";
+  state.timeLeft = TOTAL_SEC;
+  render();
+  timerHandle = setInterval(() => {
+    state.timeLeft--;
+    if (state.timeLeft <= 0) {
+      clearInterval(timerHandle);
+      saveCurrentAnswer();
+      doScore();
+      return;
+    }
+    // update timer display only
+    const wrap = document.querySelector(".timer-wrap");
+    if (!wrap) return;
+    const pct = (state.timeLeft / TOTAL_SEC) * 100;
+    const r = 22, circ = 2 * Math.PI * r;
+    const tc = state.timeLeft > 180 ? "var(--green)" : state.timeLeft > 60 ? "var(--amber)" : "var(--red)";
+    const circles = wrap.querySelectorAll("circle");
+    if (circles[1]) {
+      circles[1].setAttribute("stroke-dashoffset", circ * (1 - pct/100));
+      circles[1].setAttribute("stroke", tc);
+    }
+    const lbl = wrap.querySelector(".timer-label");
+    if (lbl) { lbl.textContent = fmtTime(state.timeLeft); lbl.style.color = tc; }
+  }, 1000);
+}
+
+// ── SCORING ────────────────────────────────────
+async function doScore() {
+  clearInterval(timerHandle);
+  state.phase = "scoring";
+  state.scoringPct = 0;
+  render();
+
+  const prog = setInterval(() => {
+    state.scoringPct = Math.min(state.scoringPct + 3, 88);
+    const fill = document.querySelector(".bar-fill");
+    if (fill) fill.style.width = state.scoringPct + "%";
+    const lbl = document.querySelector(".card span[style*='color:var(--indigo)']");
+    if (lbl) lbl.textContent = state.scoringPct + "%";
+  }, 350);
+
+  const qaText = QUESTIONS.map((q,i) =>
+    `[Q${q.id}] (${q.cat}) ${q.q}\n답변: ${state.answers[i] || "(무응답)"}`
+  ).join("\n\n");
+
+  const prompt = `당신은 엔터프라이즈 AI 솔루션 영업 전문가입니다.
+아래는 영업 사원의 AI 소양 진단 답변입니다. 각 문항별로 0~10점 채점 및 한 줄 피드백을 제공해 주세요.
+
+채점 기준:
+- 0~3점: 개념 이해 부족, 고객 응대 어려움 예상
+- 4~6점: 기본 이해는 있으나 실전 적용 부족
+- 7~10점: 실무에서 바로 활용 가능한 수준
+
+반드시 아래 JSON만 반환 (마크다운 없이):
+{"scores":[숫자 10개],"feedbacks":["피드백 10개"],"summary":"총평 2~3문장","strengths":"강점 한 줄","improvements":"개선 포인트 한 줄"}
+
+문항 및 답변:
+${qaText}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "anthropic-dangerous-direct-browser-access": "true" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    const data = await res.json();
+    const raw = data.content.map(c => c.text||"").join("");
+    const clean = raw.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(clean);
+    state.scores = parsed.scores;
+    state.feedback = parsed;
+  } catch(e) {
+    state.scores = QUESTIONS.map(() => Math.floor(Math.random()*3)+5);
+    state.feedback = {
+      feedbacks: QUESTIONS.map(() => "채점 중 오류가 발생했습니다."),
+      summary: "API 오류로 임시 결과를 표시합니다.",
+      strengths: "-", improvements: "-",
+    };
+  }
+
+  clearInterval(prog);
+  state.scoringPct = 100;
+  state.phase = "result";
+  render();
+}
+
+// ── EMAIL ──────────────────────────────────────
+async function sendEmail() {
+  state.sendStatus = "sending";
+  render();
+
+  const total = state.scores.reduce((a,b)=>a+b,0);
+  const grade = total>=85?"S":total>=70?"A":total>=55?"B":total>=40?"C":"D";
+
+  const catMap = {};
+  QUESTIONS.forEach((q,i) => {
+    if (!catMap[q.cat]) catMap[q.cat] = [];
+    catMap[q.cat].push(state.scores[i]);
+  });
+  const catSummary = Object.entries(catMap).map(([c,arr])=>
+    `${c}: ${(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1)}/10`
+  ).join(" | ");
+
+  const detailLines = QUESTIONS.map((q,i)=>
+    `Q${q.id} [${q.cat}] ${state.scores[i]}/10\n질문: ${q.q}\n답변: ${state.answers[i]||"(무응답)"}\n피드백: ${state.feedback.feedbacks?.[i]||""}`
+  ).join("\n\n---\n\n");
+
+  const submitTime = new Date().toLocaleString("ko-KR");
+
+  const templateParams = {
+    to_email:    CONFIG.recipient_email,
+    from_name:   state.name,
+    submit_time: submitTime,
+    total_score: `${total} / 100`,
+    grade:       grade,
+    cat_summary: catSummary,
+    strengths:   state.feedback.strengths || "",
+    improvements:state.feedback.improvements || "",
+    summary:     state.feedback.summary || "",
+    details:     detailLines,
+    company:     CONFIG.company,
+  };
+
+  try {
+    emailjs.init({ publicKey: CONFIG.emailjs_public_key });
+    await emailjs.send(CONFIG.emailjs_service_id, CONFIG.emailjs_template_id, templateParams);
+    state.sendStatus = "sent";
+  } catch(e) {
+    console.error(e);
+    state.sendStatus = "error";
+  }
+  render();
+}
+
+// ── RESET ──────────────────────────────────────
+function resetAll() {
+  clearInterval(timerHandle);
+  state = {
+    phase:"intro", name:"", answers:{}, currentQ:0,
+    timeLeft:TOTAL_SEC, scores:null, feedback:null,
+    scoringPct:0, sendStatus:"",
+  };
+  render();
+}
+
+// ── UTILS ──────────────────────────────────────
+function fmtTime(s) {
+  return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+}
+function escHtml(str) {
+  return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── BOOT ───────────────────────────────────────
+render();
+</script>
+</body>
+</html>
